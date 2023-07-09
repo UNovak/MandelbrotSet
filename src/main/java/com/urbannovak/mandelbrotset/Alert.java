@@ -9,22 +9,21 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public class Alert {
-    public void display(String title,String msg, String btnTxt){
+    public void display(String msg, String btn){
 
         Stage window = new Stage();
-        window.setTitle(title);
+        window.setTitle("Mandelbrot Set");
         window.setResizable(false);
         window.initModality(Modality.APPLICATION_MODAL);
         window.setAlwaysOnTop(true);
         Label message = new Label(msg);
-        Button btn = new Button(btnTxt);
-        btn.setOnAction(e -> window.close());
-
+        Button button = new Button(btn);
+        button.setOnAction(e -> window.close());
 
         VBox vbox = new VBox(20);
         vbox.setAlignment(Pos.CENTER);
-        vbox.setPrefSize(150,100);
-        vbox.getChildren().addAll(message,btn);
+        vbox.setPrefSize(200,150);
+        vbox.getChildren().addAll(message, button);
 
         Scene alertScene = new Scene(vbox);
         window.setScene(alertScene);

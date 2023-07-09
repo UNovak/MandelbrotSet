@@ -1,6 +1,6 @@
 package com.urbannovak.mandelbrotset;
 
-import javafx.scene.image.ImageView;
+import javafx.scene.image.Image;
 
 public class SetCalculation {
 
@@ -10,7 +10,7 @@ public class SetCalculation {
     private double zoom;
     private double XCENTER;
     private double YCENTER;
-    ImageView setImage = new ImageView();
+    Image image;
 
     //<editor-fold desc="Setters for SetCalculation class">
     public void setWIDTH(double WIDTH) {
@@ -34,20 +34,26 @@ public class SetCalculation {
     }
     //</editor-fold>
 
-    public void run(String mode){
-
+    public Image run(String mode){
+        if (mode.equals("sequential")) runSequential();
+        if (mode.equals("parallel")) runParallel();
+        if (mode.equals("distributed")) runDistributed();
+        return image;
     }
 
     public void runSequential(){
-
+        System.out.println("look for image in sequential");
+        image = new Image("/mandelbrot1.jpeg");
     }
 
     public void runParallel(){
-
+        System.out.println("look for image in parallel");
+        image = new Image("/image.png");
     }
 
-    public void runDistributed(){
-
+    public void runDistributed() {
+        System.out.println("look for image in distributed");
+        image = new Image("/image.png");
     }
 
     private int getColor(int iterations) {

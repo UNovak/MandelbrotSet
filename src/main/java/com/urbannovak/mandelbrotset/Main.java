@@ -5,6 +5,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -17,8 +20,8 @@ public class Main extends Application {
 
     //<editor-fold desc="Variables for setCalculation">
     SetCalculation setMaker = new SetCalculation();
-    private static double WIDTH = 800;
-    private static final int HEIGHT = 600;
+    private static int WIDTH = 800;
+    private static int HEIGHT = 600;
     private static double ZOOM = 1.0;
     private static double xCENTER = 0.0;
     private static double yCENTER = 0.0;
@@ -28,13 +31,16 @@ public class Main extends Application {
     //<editor-fold desc="variables needed for GUI">
     Stage window;
     Scene menu;
-    Scene image;
+    Scene imageScene;
 
     RadioButton sequential;
     RadioButton parallel;
     RadioButton distributed;
     VBox sizeAll;
     String fieldID;
+    Image image;
+    ImageView imageView;
+    Alert alert = new Alert();
     //</editor-fold>
 
     @Override
@@ -76,7 +82,6 @@ public class Main extends Application {
         sizeAll.setAlignment(Pos.CENTER);
         sizeAll.getChildren().addAll(sizeQuestion,sizeInput);
         //</editor-fold>
-
 
         //<editor-fold desc="Toggle buttons for determining the run mode">
         // handles the toggle group to switch between run modes
@@ -122,21 +127,17 @@ public class Main extends Application {
 
         // runs when start button is pressed
         start.setOnAction(e -> {
-            if(validateForInt(widthInput) && validateForInt(heightInput)){ // check if width end height are only ints
-                runMode = getMode(modeGroup);       // sets the string for determining the mode to run in
-                // passing the varibles to setCalculation
-                setMaker.setHEIGHT(HEIGHT);
-                setMaker.setWIDTH(WIDTH);
-                setMaker.setXCENTER(xCENTER);
-                setMaker.setYCENTER(yCENTER);
-                setMaker.setZoom(ZOOM);
-                // calls the method to run the calculation
-                setMaker.run(runMode);
-                window.setScene(image);             // changes the scene to image
+            if(validateInput(widthInput) && validateInput(heightInput)){ // check if width end height are only ints
+                runMode = getMode(modeGroup);  // sets the string for determining the mode to run in
+                if (!setVariables(widthInput,heightInput)) e.consume();
+                else {
+                    image = setMaker.run(runMode);
+                    imageView.setImage(image);
+                    window.setScene(imageScene);
+                }
             } else {
                 // size not specified in the right format, displays an alert
-                Alert alert = new Alert();
-                alert.display("Mandelbrot", fieldID + " is not a number", "Okay");
+                alert.display(fieldID + " is not a number","Okay");
             }
         });
 
@@ -147,15 +148,37 @@ public class Main extends Application {
         vbox.getChildren().addAll(displayTxt,displayImage,br1,sizeAll,br2,modeTxt,hbox,br3,start);
         //</editor-fold>
 
-
         // makes the menu window visible upon running the app
         menu = new Scene(vbox,250,300);
         window.setScene(menu);
         window.show();
+
+        //code for the imageScene
+        BorderPane borderPane = new BorderPane();
+        imageView = new ImageView();
+        imageView.setPreserveRatio(true);
+        borderPane.setCenter(imageView);
+
+        Button home = new Button("HOME");
+        home.setOnAction(e -> window.setScene(menu));
+        Button save = new Button("SAVE");
+        save.setOnAction(e -> saveFile());
+        Button icon = new Button("?");
+
+        HBox buttonsContainer = new HBox(10);
+        buttonsContainer.getChildren().addAll(home,save,icon);
+        buttonsContainer.setAlignment(Pos.CENTER_RIGHT);
+        buttonsContainer.setPadding(new Insets(5,20,5,0));
+        borderPane.setTop(buttonsContainer);
+        imageScene = new Scene(borderPane);
+    }
+
+    private void saveFile(){
+        System.out.println("File saved");
     }
 
     // returns true if the field only contains numbers
-    public boolean validateForInt(TextField input){
+    private boolean validateInput(TextField input){
         fieldID = input.getId();
         return input.getText().matches("\\d+");
     }
@@ -164,6 +187,26 @@ public class Main extends Application {
     private String getMode(ToggleGroup group){
         RadioButton selected = (RadioButton) group.getSelectedToggle();
         return selected.getId();
+    }
+
+    private boolean setVariables(TextField w, TextField h) {
+
+        WIDTH = Integer.parseInt(w.getText());
+        HEIGHT = Integer.parseInt(h.getText());
+
+        if (WIDTH < 300 || HEIGHT < 300) {
+            alert.display("Minimum size 300x300", "Okay");
+            return false;
+        }
+
+        imageView.setFitWidth(WIDTH);
+        imageView.setFitHeight(HEIGHT);
+        setMaker.setHEIGHT(HEIGHT);
+        setMaker.setWIDTH(WIDTH);
+        setMaker.setXCENTER(xCENTER);
+        setMaker.setYCENTER(yCENTER);
+        setMaker.setZoom(ZOOM);
+        return true;
     }
 
     public static void main(String[] args) {
