@@ -1,6 +1,7 @@
 package com.urbannovak.mandelbrotset;
 
 import javafx.application.Application;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -14,32 +15,34 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
+import javax.imageio.ImageIO;
+import java.io.File;
 import java.io.IOException;
+import java.time.ZonedDateTime;
 
 public class Main extends Application {
 
     //<editor-fold desc="Variables for setCalculation">
     SetCalculation setMaker = new SetCalculation();
-    private static int WIDTH = 800;
-    private static int HEIGHT = 600;
-    private static double ZOOM = 1.0;
-    private static double xCENTER = 0.0;
-    private static double yCENTER = 0.0;
+    private static int width = 800;
+    private static int height = 600;
+    private static final double zoom = 1.0;
     private String runMode = "parallel";
+    private boolean render;
     //</editor-fold>
 
     //<editor-fold desc="variables needed for GUI">
     Stage window;
     Scene menu;
     Scene imageScene;
+    Image image;
+    ImageView imageView;
 
     RadioButton sequential;
     RadioButton parallel;
     RadioButton distributed;
     VBox sizeAll;
     String fieldID;
-    Image image;
-    ImageView imageView;
     Alert alert = new Alert();
     //</editor-fold>
 
@@ -131,9 +134,19 @@ public class Main extends Application {
                 runMode = getMode(modeGroup);  // sets the string for determining the mode to run in
                 if (!setVariables(widthInput,heightInput)) e.consume();
                 else {
+                    render = displayImage.isSelected();
+                    setVariables(widthInput,heightInput);
                     image = setMaker.run(runMode);
-                    imageView.setImage(image);
-                    window.setScene(imageScene);
+                    if (render) {
+                        window.setResizable(true);
+                        imageView.setFitWidth(width);
+                        imageView.setFitHeight(height);
+                        imageView.setImage(image);
+                        window.setScene(imageScene);
+                    } else {
+                        alert.display("Image saved to downloads", "Okay");
+                        saveFile();
+                    }
                 }
             } else {
                 // size not specified in the right format, displays an alert
@@ -156,11 +169,14 @@ public class Main extends Application {
         //code for the imageScene
         BorderPane borderPane = new BorderPane();
         imageView = new ImageView();
-        imageView.setPreserveRatio(true);
         borderPane.setCenter(imageView);
 
         Button home = new Button("HOME");
-        home.setOnAction(e -> window.setScene(menu));
+        home.setOnAction(e -> {
+            window.setScene(menu);
+            window.setResizable(false);
+
+        });
         Button save = new Button("SAVE");
         save.setOnAction(e -> saveFile());
         Button icon = new Button("?");
@@ -174,7 +190,14 @@ public class Main extends Application {
     }
 
     private void saveFile(){
-        System.out.println("File saved");
+        ZonedDateTime time = ZonedDateTime.now();
+        try {
+            File outputFile = new File(System.getProperty("user.home") + "/Downloads/mandelbrot_set_" + time.getHour()+":"+ time.getMinute() + ".png");
+            ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", outputFile);
+            System.out.println("Image saved to: " + outputFile.getAbsolutePath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     // returns true if the field only contains numbers
@@ -189,23 +212,21 @@ public class Main extends Application {
         return selected.getId();
     }
 
+    // passes all variables needed to SetCalculation
     private boolean setVariables(TextField w, TextField h) {
 
-        WIDTH = Integer.parseInt(w.getText());
-        HEIGHT = Integer.parseInt(h.getText());
+        width = Integer.parseInt(w.getText());
+        height = Integer.parseInt(h.getText());
 
-        if (WIDTH < 300 || HEIGHT < 300) {
+        if (width < 300 || height < 300) {
             alert.display("Minimum size 300x300", "Okay");
             return false;
         }
 
-        imageView.setFitWidth(WIDTH);
-        imageView.setFitHeight(HEIGHT);
-        setMaker.setHEIGHT(HEIGHT);
-        setMaker.setWIDTH(WIDTH);
-        setMaker.setXCENTER(xCENTER);
-        setMaker.setYCENTER(yCENTER);
-        setMaker.setZoom(ZOOM);
+        imageView.setFitWidth(width);
+        imageView.setFitHeight(height);
+        setMaker.setHeight(height);
+        setMaker.setWidth(width);
         return true;
     }
 
