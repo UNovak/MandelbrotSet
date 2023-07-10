@@ -18,7 +18,6 @@ import javafx.stage.Stage;
 import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
-
 import java.time.ZonedDateTime;
 
 public class Main extends Application {
@@ -30,6 +29,11 @@ public class Main extends Application {
     private static final double zoom = 1.0;
     private String runMode = "parallel";
     private boolean render;
+    private double offsetX = 0.0;
+    private double offsetY = 0.0;
+    private double zoomFactor = 1.0;
+    private static final double ZOOM_DELTA = 0.1;
+
     //</editor-fold>
 
     //<editor-fold desc="variables needed for GUI">
@@ -136,7 +140,6 @@ public class Main extends Application {
                 if (!setVariables(widthInput,heightInput)) e.consume();
                 else {
                     render = displayImage.isSelected();
-                    setVariables(widthInput,heightInput);
                     image = setMaker.run(runMode);
                     if (render) {
                         window.setResizable(true);
@@ -167,28 +170,55 @@ public class Main extends Application {
         window.setScene(menu);
         window.show();
 
+        //<editor-fold desc="ImageScene configuration">
         //code for the imageScene
         BorderPane borderPane = new BorderPane();
         imageView = new ImageView();
         borderPane.setCenter(imageView);
 
+        // creating buttons
         Button home = new Button("HOME");
-        home.setOnAction(e -> {
-            window.setScene(menu);
-            window.setResizable(false);
-        });
-
-        Button save = new Button("SAVE");
-        save.setOnAction(e -> saveFile());
-
         Button icon = new Button("?");
+        Button save = new Button("SAVE");
 
+        // grouping and adding to boarderPane
         HBox buttonsContainer = new HBox(10);
         buttonsContainer.getChildren().addAll(home,save,icon);
         buttonsContainer.setAlignment(Pos.CENTER_RIGHT);
         buttonsContainer.setPadding(new Insets(5,20,5,0));
         borderPane.setTop(buttonsContainer);
+
+        // button functionality
+        save.setOnAction(e -> saveFile());
+        home.setOnAction(e -> {
+            window.setScene(menu);
+            window.setResizable(false);
+        });
+
+        // adding the scene
         imageScene = new Scene(borderPane);
+        //</editor-fold>
+
+        imageScene.setOnKeyReleased(e -> {
+            String key = e.getCode().toString().toUpperCase();
+            System.out.println(key);
+            switch (key) {
+                case "UP" -> offsetY -= 10 / zoomFactor;
+                case "DOWN" -> offsetY += 10 / zoomFactor;
+                case "LEFT" -> offsetX -= 10 / zoomFactor;
+                case "RIGHT" -> offsetX += 10 / zoomFactor;
+                case "MINUS" -> zoomFactor = Math.max(zoomFactor - ZOOM_DELTA, 0.1);
+                case "EQUALS", "PLUS" -> zoomFactor += ZOOM_DELTA;
+                default -> System.out.println("unregistered key");
+            }
+            updateImage();
+        });
+    }
+
+    private void updateImage() {
+        System.out.println("offsetX : " + offsetX);
+        System.out.println("offsetY : " + offsetY);
+        System.out.println("zoomFactor : " + zoomFactor);
     }
 
     private void saveFile(){

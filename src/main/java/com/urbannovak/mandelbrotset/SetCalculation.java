@@ -14,20 +14,7 @@ import java.util.concurrent.BlockingQueue;
 
 public class SetCalculation {
 
-    private static class Chunk {
-        private final int startX;
-        private final int startY;
-        private final int endX;
-        private final int endY;
-
-        public Chunk(int startX, int startY, int endX, int endY) {
-            this.startX = startX;
-            this.startY = startY;
-            this.endX = endX;
-            this.endY = endY;
-        }
-    }
-
+    private record Chunk(int startX, int startY, int endX, int endY) {}
     private final static int MAX_ITERATIONS = 500;
     private static final double MIN_X = -2.0;
     private static final double MAX_X = 1.0;
