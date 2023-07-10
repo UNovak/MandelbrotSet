@@ -19,6 +19,7 @@ import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Main extends Application {
 
@@ -222,11 +223,14 @@ public class Main extends Application {
     }
 
     private void saveFile(){
-        ZonedDateTime time = ZonedDateTime.now();
+        ZonedDateTime timeNow = ZonedDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+        String time = timeNow.format(formatter);
         try {
-            File outputFile = new File(System.getProperty("user.home") + "/Downloads/mandelbrot_set_" + time.getHour()+":"+ time.getMinute() + ".png");
+            File outputFile = new File(System.getProperty("user.home"), "Downloads/mandelbrot_set_" + time + ".png");
             ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", outputFile);
             System.out.println("Image saved to: " + outputFile.getAbsolutePath());
+            alert.display("Image was saved", "great");
         } catch (IOException e) {
             e.printStackTrace();
         }
