@@ -18,6 +18,7 @@ import javafx.stage.Stage;
 import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
+
 import java.time.ZonedDateTime;
 
 public class Main extends Application {
@@ -175,10 +176,11 @@ public class Main extends Application {
         home.setOnAction(e -> {
             window.setScene(menu);
             window.setResizable(false);
-
         });
+
         Button save = new Button("SAVE");
         save.setOnAction(e -> saveFile());
+
         Button icon = new Button("?");
 
         HBox buttonsContainer = new HBox(10);

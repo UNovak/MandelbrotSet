@@ -4,6 +4,8 @@ target/
 !**/src/test/**/target/
 
 ### IntelliJ IDEA ###
+.idea/
+.idea/inspectionProfiles/
 .idea/modules.xml
 .idea/jarRepositories.xml
 .idea/compiler.xml
@@ -36,3 +38,7 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Images ###
+*.png
+*.jpg
