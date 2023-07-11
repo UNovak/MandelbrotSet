@@ -42,3 +42,6 @@ build/
 ### Images ###
 *.png
 *.jpg
+
+### Java class ###
+Calcualte.class
