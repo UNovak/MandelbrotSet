@@ -12,19 +12,18 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import static com.urbannovak.mandelbrotset.Constants.*;
+
 public class SetCalculation {
 
     private record Chunk(int startX, int startY, int endX, int endY) {}
-    private final static int MAX_ITERATIONS = 500;
-    private static final double MIN_X = -2.0;
-    private static final double MAX_X = 1.0;
-    private static final double MIN_Y = -1.5;
-    private static final double MAX_Y = 1.5;
-    private double zoom;
-    double dx;
-    double dy;
     private int width;
     private int height;
+    private double zoom;
+    private double centerX;
+    private double centerY;
+    double dx;
+    double dy;
 
     Image result;
     WritableImage writableImage;
@@ -37,13 +36,24 @@ public class SetCalculation {
     public void setHeight(int height) {this.height = height;}
 
     public void setZoom(double zoom) {this.zoom = zoom;}
+
+    public void setCenterX(double centerX) {this.centerX = centerX;}
+
+    public void setCenterY(double centerY) {this.centerY = centerY;}
+
+    public double getZoom() {
+        return zoom;
+    }
+
     //</editor-fold>
 
     public Image run(String mode){
 
-        //scale x and y to always render x[-2,1] and y[-1.5,1.5]
+        //scale x and y factor
         dx = (MAX_X - MIN_X) / width;
         dy = (MAX_Y - MIN_Y) / height;
+        dx /= zoom;
+        dy /= zoom;
 
         // create an empty writable image with width and height
         writableImage = new WritableImage(width,height);
@@ -60,7 +70,6 @@ public class SetCalculation {
     }
 
     public void runSequential(){
-        System.out.println("running sequential");
         long start = System.currentTimeMillis();
         for (int pixelX = 0; pixelX < width; pixelX++) {
             for (int pixelY = 0; pixelY < height; pixelY++) {
@@ -78,7 +87,7 @@ public class SetCalculation {
 
     public void runParallel() {
 
-        System.out.println("running parallel"); // debugging
+//        System.out.println("running parallel"); // debugging
 
         List<Thread> threads = new ArrayList<>();
         int numThreads = Runtime.getRuntime().availableProcessors();
@@ -108,6 +117,7 @@ public class SetCalculation {
         for (int i = 0; i < numThreads; i++) {
             Thread thread = new Thread(() -> {
                 while (!queue.isEmpty()) {
+                    if(queue.contains(null)) break;
                     Chunk chunk = queue.poll(); // get chunk to compute
                     processChunk(chunk); // go to process this chunk
                 }
@@ -141,14 +151,15 @@ public class SetCalculation {
         for (int pixelX = chunk.startX; pixelX < chunk.endX; pixelX++) {
             for (int pixelY = chunk.startY; pixelY < chunk.endY; pixelY++) {
                 // calculate the coordinates as if the image had 0,0 in the center
-                double x = MIN_X + pixelX * dx;
-                double y = MIN_Y + pixelY * dy;
+                double x = MIN_X + (pixelX - centerX) * dx / zoom;
+                double y = MIN_Y + (pixelY - centerY) * dy / zoom;
 
                 int iterations = computeSet(x, y); // get the amount of needed iterations
-                pixelWriter.setColor(pixelX, pixelY, getColor(iterations)); // set colour
+                pixelWriter.setColor(pixelX, pixelY, getColor(iterations)); // set color
             }
         }
     }
+
 
     // standard escape time algorithm for plotting the mandelbrot set
     private int computeSet(double x, double y) {
