@@ -6,6 +6,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.effect.BlendMode;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
@@ -28,13 +29,12 @@ public class Main extends Application {
     private static int width = 800;
     private static int height = 600;
     private static final double zoom = 1.0;
-    private String runMode = "parallel";
-    private boolean render;
     private double offsetX = 0.0;
     private double offsetY = 0.0;
     private double zoomFactor = 1.0;
     private static final double ZOOM_DELTA = 0.1;
-
+    private String runMode = "1";
+    private boolean render = false;
     //</editor-fold>
 
     //<editor-fold desc="variables needed for GUI">
@@ -47,6 +47,7 @@ public class Main extends Application {
     RadioButton sequential;
     RadioButton parallel;
     RadioButton distributed;
+    ToggleButton displayImage;
     VBox sizeAll;
     String fieldID;
     Alert alert = new Alert();
@@ -61,12 +62,9 @@ public class Main extends Application {
 
         // creates the toggle for displaying image and the prompt
         Label displayTxt = new Label("Display image?");
-        ToggleButton displayImage = new ToggleButton("NO");
+        displayImage = new ToggleButton("NO");
         displayImage.setSelected(false);
-        displayImage.setOnAction(e -> {
-            if (displayImage.isSelected()) displayImage.setText("YES");
-            else displayImage.setText("NO");
-        });
+        displayImage.setId("0");
 
         //<editor-fold desc="Size input">
         // label cration and styling
@@ -102,22 +100,18 @@ public class Main extends Application {
         sequential = new RadioButton("sequential");
         sequential.getStyleClass().remove("radio-button");
         sequential.getStyleClass().add("toggle-button");
-        sequential.setId("sequential");
+        sequential.setId("1");
         sequential.setSelected(true); // default selected run mode == parallel
 
         parallel = new RadioButton("parallel");
         parallel.getStyleClass().remove("radio-button");
         parallel.getStyleClass().add("toggle-button");
-        parallel.setId("parallel");
+        parallel.setId("2");
 
         distributed = new RadioButton("distributed");
         distributed.getStyleClass().remove("radio-button");
         distributed.getStyleClass().add("toggle-button");
-        distributed.setId("distributed");
-        distributed.setOnAction(e -> {
-            displayImage.setSelected(false);
-            displayImage.setText("NO");
-        });
+        distributed.setId("3");
 
         distributed.setToggleGroup(modeGroup);
         parallel.setToggleGroup(modeGroup);
@@ -127,58 +121,25 @@ public class Main extends Application {
         hbox.getChildren().addAll(sequential,parallel, distributed);
         //</editor-fold>
 
-        //<editor-fold desc="create horizontal lines to divide the menu">
+        // to create horizontal lines in the layout
         SplitPane br1 = new SplitPane();
         SplitPane br2 = new SplitPane();
         SplitPane br3 = new SplitPane();
-        //</editor-fold>
+        br3.setBlendMode(BlendMode.COLOR_BURN);
 
         // start button
         Button start = new Button("START");
         start.setMinSize(80,40);
         start.setTextFill(Color.RED);
 
-        // runs when start button is pressed
-        start.setOnAction(e -> {
-            if(validateInput(widthInput) && validateInput(heightInput)){ // check if width end height are only ints
-                runMode = getMode(modeGroup);  // sets the string for determining the mode to run in
-                if (!setVariables(widthInput,heightInput)) e.consume();
-                else {
-                    render = displayImage.isSelected();
-                    image = setMaker.run(runMode);
-                    if (render) {
-                        window.setResizable(true);
-                        imageView.setFitWidth(width);
-                        imageView.setFitHeight(height);
-                        imageView.setImage(image);
-                        window.setScene(imageScene);
-                    } else {
-                        if(!getMode(modeGroup).equals("distributed")) {
-                            saveFile();
-                            alert.display("Image saved to downloads", "Okay");
-                        } else alert.display("Check console for runtime", "Okay");
-                    }
-                }
-            } else {
-                // size not specified in the right format, displays an alert
-                alert.display(fieldID + " is not a number","Okay");
-            }
-        });
 
-        //<editor-fold desc="VBox layout for all menu components">
+        //menu components layout
         VBox vbox = new VBox(10);
         vbox.setAlignment(Pos.CENTER);
         // joins all components of the menu in a vertical box layout
         vbox.getChildren().addAll(displayTxt,displayImage,br1,sizeAll,br2,modeTxt,hbox,br3,start);
-        //</editor-fold>
-
-        // makes the menu window visible upon running the app
-        menu = new Scene(vbox,250,300);
-        window.setScene(menu);
-        window.show();
 
         //<editor-fold desc="ImageScene configuration">
-        //code for the imageScene
         BorderPane borderPane = new BorderPane();
         imageView = new ImageView();
         borderPane.setCenter(imageView);
@@ -195,17 +156,37 @@ public class Main extends Application {
         buttonsContainer.setPadding(new Insets(5,20,5,0));
         borderPane.setTop(buttonsContainer);
 
-        // button functionality
+        imageScene = new Scene(borderPane);
+        //</editor-fold>
+
+        // menu scene actions
+        distributed.setOnAction(e -> updateButtonStates(modeGroup, distributed.getId()));
+        sequential.setOnAction(e -> updateButtonStates(modeGroup, sequential.getId()));
+        parallel.setOnAction(e -> updateButtonStates(modeGroup, parallel.getId()));
+        displayImage.setOnAction(e -> updateButtonStates(modeGroup, displayImage.getId()));
+        start.setOnAction(e -> {
+            // check if width end height are only ints
+            if (!setVariables(widthInput,heightInput)) e.consume(); // failed to set width/height
+
+            // all variables were ok
+            if (render) {
+                image = setMaker.getImage(runMode);
+                imageView.setImage(image);
+                window.setScene(imageScene);
+                window.setResizable(true);
+            }
+
+            setMaker.performanceRun(runMode);
+            alert.display("Check console for performance info", "OK");
+
+        });
+
+        // image scene actions
         save.setOnAction(e -> saveFile());
         home.setOnAction(e -> {
             window.setScene(menu);
             window.setResizable(false);
         });
-
-        // adding the scene
-        imageScene = new Scene(borderPane);
-        //</editor-fold>
-
         imageScene.setOnKeyReleased(e -> {
             String key = e.getCode().toString().toUpperCase();
             System.out.println(key);
@@ -220,7 +201,13 @@ public class Main extends Application {
             }
             updateImage();
         });
+
+        menu = new Scene(vbox,250,300);
+        window.setScene(menu);
+        window.show();
     }
+
+    // helper methods
 
     private void updateImage() {
         System.out.println("offsetX : " + offsetX);
@@ -242,36 +229,81 @@ public class Main extends Application {
         }
     }
 
-    // returns true if the field only contains numbers
+    // attempts to assign new width and height
+    // fails if input is not strictly an integer
+    // fails if size too small
+    // displays an alert with error message when fail
+    private boolean setVariables(TextField w, TextField h) {
+
+        if(validateInput(w) && validateInput(h)) { // both fields are ints
+
+            int newWidth = Integer.parseInt(w.getText());
+            int newHeight = Integer.parseInt(h.getText());
+
+            if ( newHeight < 300 || newWidth < 300) {
+                // enters is size too small
+                alert.display("Image size too small", "Okay");
+                return false;
+            }
+
+            // passed all variable tests
+            // assign updated values
+            width = newWidth;
+            height = newHeight;
+
+            imageView.setFitWidth(width);
+            imageView.setFitHeight(height);
+            setMaker.setHeight(height);
+            setMaker.setWidth(width);
+            setMaker.setRender(render);
+
+            return true;
+        }
+        alert.display(fieldID + " is not a number","Okay");
+        return false;
+    }
+
     private boolean validateInput(TextField input){
         fieldID = input.getId();
         return input.getText().matches("\\d+");
     }
 
-    // a method that returns the ID of the selected radiobutton to determine the mode
-    private String getMode(ToggleGroup group){
-        RadioButton selected = (RadioButton) group.getSelectedToggle();
-        return selected.getId();
-    }
+    // this method gets called when one of the toggle buttons or displayImage is pressed
+    private void updateButtonStates(ToggleGroup group, String ID){
+        // display image changed
+        if (ID.equals("0")){
 
-    // passes all variables needed to SetCalculation
-    private boolean setVariables(TextField w, TextField h) {
+            if(displayImage.isSelected()){
+                render = true;
+                displayImage.setText("YES");
+                distributed.setDisable(true);
+            }
 
-        width = Integer.parseInt(w.getText());
-        height = Integer.parseInt(h.getText());
-
-        if (width < 300 || height < 300) {
-            alert.display("Minimum size 300x300", "Okay");
-            return false;
+            else {
+                distributed.setDisable(false);
+                render = false;
+                displayImage.setText("NO");
+            }
         }
 
-        imageView.setFitWidth(width);
-        imageView.setFitHeight(height);
-        setMaker.setHeight(height);
-        setMaker.setWidth(width);
-        return true;
+        else {
+            if (ID.equals("3")) { // distributed
+               render = false;
+               displayImage.setText("NO");
+               displayImage.setDisable(true);
+               displayImage.setSelected(false);
+               runMode = ID;
+            }
+
+            else {
+                runMode = ID;
+                displayImage.setDisable(false);
+                displayImage.setSelected(false);
+            }
+        }
     }
 
+    // called when running the program
     public static void main(String[] args) {
         launch();
     }

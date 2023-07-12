@@ -29,19 +29,12 @@ public class Calculate {
                 double cx = (x - width / 2.0) * 4.0 / width;  // Scale and shift x coordinate
                 double cy = (y - height / 2.0) * 4.0 / width; // Scale and shift y coordinate
                 int iterations = 0;
-                while (zx * zx + zy * zy < 4 && iterations < 1000) {
+                while (zx * zx + zy * zy < 4 && iterations < 500) {
                     double xtemp = zx * zx - zy * zy + cx;
                     zy = 2.0 * zx * zy + cy;
                     zx = xtemp;
                     iterations++;
                 }
-
-                // Color the pixel based on the number of iterations
-                int color = (iterations == 1000) ? 0x000000 : 0xFFFFFF;
-                // Set the color value in your image representation
-
-                // Print the pixel coordinates and color value
-                // System.out.println("Pixel: (" + x + ", " + y + ") Color: " + color);
             }
         }
 
@@ -50,8 +43,13 @@ public class Calculate {
 
         // Write the computation time result to the file
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("time.txt", false))) {
-            // Write computation time to the file
-            writer.write(String.valueOf(computationTime));
+            writer.write("Number of cores used: " + size);
+            writer.newLine();
+            writer.write("Width: " + width);
+            writer.newLine();
+            writer.write("Height: " + height);
+            writer.newLine();
+            writer.write("Computation time: " + computationTime + "ms");
         } catch (IOException e) {
             e.printStackTrace();
         }
