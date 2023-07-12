@@ -114,6 +114,10 @@ public class Main extends Application {
         distributed.getStyleClass().remove("radio-button");
         distributed.getStyleClass().add("toggle-button");
         distributed.setId("distributed");
+        distributed.setOnAction(e -> {
+            displayImage.setSelected(false);
+            displayImage.setText("NO");
+        });
 
         distributed.setToggleGroup(modeGroup);
         parallel.setToggleGroup(modeGroup);
@@ -149,8 +153,10 @@ public class Main extends Application {
                         imageView.setImage(image);
                         window.setScene(imageScene);
                     } else {
-                        alert.display("Image saved to downloads", "Okay");
-                        saveFile();
+                        if(!getMode(modeGroup).equals("distributed")) {
+                            saveFile();
+                            alert.display("Image saved to downloads", "Okay");
+                        } else alert.display("Check console for runtime", "Okay");
                     }
                 }
             } else {

@@ -7,6 +7,10 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -130,10 +134,6 @@ public class SetCalculation {
         result = convertToImage(writableImage);
     }
 
-    public void runDistributed() {
-        System.out.println("running distributed");  // debugging
-    }
-
     // threads get Chunks from queue and call this method
     // set the x and y bounds of the part of the image to process
     // do the escape time on each pixel in the chunk and set the colour
@@ -175,5 +175,25 @@ public class SetCalculation {
     public static Image convertToImage(WritableImage writableImage) {
         BufferedImage bufferedImage = SwingFXUtils.fromFXImage(writableImage, null);
         return SwingFXUtils.toFXImage(bufferedImage, null);
+    }
+
+    public void runDistributed() {
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("/bin/zsh", "./mpjScript.zsh", "6", String.valueOf(width), String.valueOf(height));
+            processBuilder.directory(new File(System.getProperty("user.dir") + "/src/main/java/distributed"));
+            Process process = processBuilder.start();
+            process.waitFor();
+
+            // Read the computation time result from the file
+            Path timeFilePath = Path.of("src", "main", "java", "distributed", "time.txt");
+            String computationTimeStr = Files.readString(timeFilePath);
+            if (!computationTimeStr.isEmpty()) {
+                long computationTime = Long.parseLong(computationTimeStr);
+                System.out.println("Computation Time: " + computationTime + "ms");
+            }
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
