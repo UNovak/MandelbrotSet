@@ -16,6 +16,7 @@ public class Calculate {
 
         int width = Integer.parseInt(args[3]);
         int height = Integer.parseInt(args[4]);
+        int maxIter = Integer.parseInt(args[5]);
 
         // Calculate the range of values each process will compute
         int startRow = rank * (height / size);
@@ -29,7 +30,7 @@ public class Calculate {
                 double cx = (x - width / 2.0) * 4.0 / width;  // Scale and shift x coordinate
                 double cy = (y - height / 2.0) * 4.0 / width; // Scale and shift y coordinate
                 int iterations = 0;
-                while (zx * zx + zy * zy < 4 && iterations < 500) {
+                while (zx * zx + zy * zy < 4 && iterations < maxIter) {
                     double xtemp = zx * zx - zy * zy + cx;
                     zy = 2.0 * zx * zy + cy;
                     zx = xtemp;
@@ -49,7 +50,11 @@ public class Calculate {
             writer.newLine();
             writer.write("Height: " + height);
             writer.newLine();
+            writer.write("Iteration limit: " + maxIter);
+            writer.newLine();
             writer.write("Computation time: " + computationTime + "ms");
+            writer.newLine();
+
         } catch (IOException e) {
             e.printStackTrace();
         }

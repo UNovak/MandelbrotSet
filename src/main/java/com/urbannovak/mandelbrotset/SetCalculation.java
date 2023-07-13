@@ -20,20 +20,25 @@ import static com.urbannovak.mandelbrotset.Constants.*;
 
 public class SetCalculation {
 
-    private record Chunk(int startX, int startY, int endX, int endY) {}
+    public boolean isFirst = true;
+    double dx;
+    double dy;
+    Image result;
+    WritableImage writableImage;
+    PixelWriter pixelWriter;
+    BlockingQueue<Chunk> queue;
     private int width;
     private int height;
     private double zoom;
     private double centerX;
     private double centerY;
-    double dx;
-    double dy;
-
-    Image result;
-    WritableImage writableImage;
-    PixelWriter pixelWriter;
-    BlockingQueue<Chunk> queue;
     private boolean render;
+
+    // a method for converting a WritableImage to normal Image
+    public static Image convertToImage(WritableImage writableImage) {
+        BufferedImage bufferedImage = SwingFXUtils.fromFXImage(writableImage, null);
+        return SwingFXUtils.toFXImage(bufferedImage, null);
+    }
 
     //<editor-fold desc="Setters for SetCalculation class">
     public void setWidth(int width) {this.width = width;}
@@ -50,8 +55,7 @@ public class SetCalculation {
 
     //</editor-fold>
 
-    public Image getImage(String mode){
-
+    public Image getImage(String mode) {
         //scale x and y factor
         dx = (MAX_X - MIN_X) / width;
         dy = (MAX_Y - MIN_Y) / height;
@@ -59,21 +63,50 @@ public class SetCalculation {
         dy /= zoom;
 
         // create an empty writable image with width and height
-        writableImage = new WritableImage(width,height);
+        writableImage = new WritableImage(width, height);
         // define pixel-writer for setting color of individual pixel
         pixelWriter = writableImage.getPixelWriter();
 
         // run in the selected mode
-        if (mode.equals("1")) runSequential();
-        if (mode.equals("2")) runParallel();
-        if (mode.equals("3")) runDistributed();
-
+        if (mode.equals("1"))
+            runSequential();
+        if (mode.equals("2"))
+            runParallel();
+        if (mode.equals("3"))
+            runDistributed();
         // return the image once it was computed
         return result;
     }
 
-    public void runSequential(){
-        System.out.println("running sequential");
+    public void performanceRun(String mode) {
+        //scale x and y factor
+        dx = (MAX_X - MIN_X) / width;
+        dy = (MAX_Y - MIN_Y) / height;
+        dx /= zoom;
+        dy /= zoom;
+
+        if (isFirst)
+            System.out.println("""
+                                       -----------------!DISCLAIMER!--------------------
+                                               
+                                       Running without displaying the image. The result
+                                       of the calculations gets discarded. This mode is
+                                       meant only for performance tests.
+                                       """);
+
+        isFirst = false;
+
+        // run in the selected mode
+        if (mode.equals("1"))
+            runSequential();
+        if (mode.equals("2"))
+            runParallel();
+        if (mode.equals("3"))
+            runDistributed();
+    }
+
+    public void runSequential() {
+
         long start = System.currentTimeMillis();
         for (int pixelX = 0; pixelX < width; pixelX++) {
             for (int pixelY = 0; pixelY < height; pixelY++) {
@@ -81,17 +114,19 @@ public class SetCalculation {
                 double y = MIN_Y + pixelY * dy;
 
                 int iterations = computeSet(x, y);
-                pixelWriter.setColor(pixelX, pixelY, getColor(iterations));
+
+                if (render)
+                    pixelWriter.setColor(pixelX, pixelY, getColor(iterations));
             }
         }
         long end = System.currentTimeMillis();
-        System.out.println("sequential computation time: " + (end - start) + "ms");
-        result = convertToImage(writableImage);
+        if (!render)
+            printStats("1", 1, width, height, MAX_ITERATIONS, (end - start));
+        if (render)
+            result = convertToImage(writableImage);
     }
 
     public void runParallel() {
-
-        System.out.println("running parallel"); // debugging
 
         List<Thread> threads = new ArrayList<>();
         int numThreads = Runtime.getRuntime().availableProcessors();
@@ -99,7 +134,7 @@ public class SetCalculation {
         final int chunkSize = 30; // chunkSize = 30 ==> 30x30 pixels
         int numChunksX = (int) Math.ceil((double) width / chunkSize);
         int numChunksY = (int) Math.ceil((double) height / chunkSize);
-        queue = new ArrayBlockingQueue<>(numChunksY * numChunksX,true);
+        queue = new ArrayBlockingQueue<>(numChunksY * numChunksX, true);
 
         // Populate the chunk queue
         for (int chunkX = 0; chunkX < numChunksX; chunkX++) {
@@ -120,8 +155,8 @@ public class SetCalculation {
         long start = System.currentTimeMillis();
         for (int i = 0; i < numThreads; i++) {
             Thread thread = new Thread(() -> {
-                while (!queue.isEmpty()) {
-                    Chunk chunk = queue.poll(); // get chunk to compute
+                Chunk chunk;
+                while ((chunk = queue.poll()) != null) {
                     processChunk(chunk); // go to process this chunk
                 }
             });
@@ -139,17 +174,19 @@ public class SetCalculation {
             Thread.currentThread().interrupt();
         }
         long end = System.currentTimeMillis(); // all the threads are done
-        System.out.println("parallel computation time: " + (end - start) + "ms");
-        result = convertToImage(writableImage);
+        if (!render)
+            printStats("2", numThreads, width, height, MAX_ITERATIONS, (end - start));
+        if (render)
+            result = convertToImage(writableImage);
     }
 
     public void runDistributed() {
-        System.out.println("running distributed");
 
         int cores = Runtime.getRuntime().availableProcessors();
 
         try {
-            ProcessBuilder processBuilder = new ProcessBuilder("/bin/zsh", "./mpjScript.zsh", String.valueOf(cores), String.valueOf(width), String.valueOf(height));
+            ProcessBuilder processBuilder = new ProcessBuilder("/bin/zsh", "./mpjScript.zsh", String.valueOf(cores), String.valueOf(width), String.valueOf(height), String.valueOf(MAX_ITERATIONS));
+
             processBuilder.directory(new File(System.getProperty("user.dir") + "/src/main/java/distributed"));
             Process process = processBuilder.start();
             process.waitFor();
@@ -162,19 +199,17 @@ public class SetCalculation {
             int coresUsed = Integer.parseInt(lines[0].replace("Number of cores used: ", ""));
             int width = Integer.parseInt(lines[1].replace("Width: ", ""));
             int height = Integer.parseInt(lines[2].replace("Height: ", ""));
-            long computationTime = Long.parseLong(lines[3].replace("Computation time: ", "").replace("ms", ""));
+            int maxIter = Integer.parseInt(lines[3].replace("Iteration limit: ", ""));
+            long computationTime = Long.parseLong(lines[4].replace("Computation time: ", "").replace("ms", ""));
 
-            System.out.println("Number of cores used: " + coresUsed);
-            System.out.println("Width: " + width);
-            System.out.println("Height: " + height);
-            System.out.println("Computation time: " + computationTime + "ms");
-            System.out.println("\n\n-----------------!DISCLAIMER!----------------\n\n" +
-                                "The distributed method does nothing with the data\n" +
-                                "It just calculates values for colors but does not set them");
+            if (!render)
+                printStats("3", coresUsed, width, height, maxIter, computationTime);
+
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
+
     //<editor-fold desc="Helper functions">
     // threads get Chunks from queue and call this method
     // set the x and y bounds of the part of the image to process
@@ -187,7 +222,8 @@ public class SetCalculation {
                 double y = MIN_Y + (pixelY - centerY) * dy / zoom;
 
                 int iterations = computeSet(x, y); // get the amount of needed iterations
-                pixelWriter.setColor(pixelX, pixelY, getColor(iterations)); // set color
+                if (render)
+                    pixelWriter.setColor(pixelX, pixelY, getColor(iterations)); // set color
             }
         }
     }
@@ -209,23 +245,43 @@ public class SetCalculation {
 
     // returns the color based on the amount of used iterations
     private Color getColor(int iterations) {
-        if(iterations >= MAX_ITERATIONS) return Color.RED;
-        else return Color.ALICEBLUE;
+        if (iterations >= MAX_ITERATIONS)
+            return Color.RED;
+        else
+            return Color.ALICEBLUE;
     }
 
-    // a method for converting a WritableImage to normal Image
-    public static Image convertToImage(WritableImage writableImage) {
-        BufferedImage bufferedImage = SwingFXUtils.fromFXImage(writableImage, null);
-        return SwingFXUtils.toFXImage(bufferedImage, null);
+    public void printStats(String mode, int res, int w, int h, int maxIter, long time) {
+
+        String mode_str;
+        String var = "";
+
+        switch (mode) {
+        case "1" -> mode_str = "sequential";
+        case "2" -> {
+            mode_str = "parallel";
+            var = "threads";
+        }
+        case "3" -> {
+            mode_str = "distributed";
+            var = "nodes";
+        }
+        default -> {
+            System.out.println("mode ID unknown");
+            return;
+        }
+        }
+        System.out.println("\n---------------------STATS------------------------");
+        System.out.println("Computation mode: " + mode_str);
+        if (!mode.equals("1"))
+            System.out.println("Number of " + var + " used: " + res);
+        System.out.println("Width: " + w + "px");
+        System.out.println("Height: " + h + "px");
+        System.out.println("Iteration limit: " + maxIter);
+        System.out.println("Computation time: " + time + "ms");
+        System.out.println("---------------------------------------------------\n\n");
     }
     //</editor-fold>
+
+    private record Chunk(int startX, int startY, int endX, int endY) {}
 }
-
-// TODO
-// adjust rendering methods in a way that if rendering is toggled off, the methods do not set the pixel values
-
-// TODO
-// adjust gui in a whay that when distributed is selected rendering can not be toggled on
-
-// TODO
-// adjust the alerts so that when rendering is toggled of the alert just tels the user to look at the console.
