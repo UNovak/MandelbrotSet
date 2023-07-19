@@ -4,12 +4,13 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public class Alert {
-    public void display(String msg, String btn){
+    public void display(String msg, String btn) {
 
         Stage window = new Stage();
         window.setTitle("Mandelbrot Set");
@@ -19,10 +20,15 @@ public class Alert {
         Label message = new Label(msg);
         Button button = new Button(btn);
         button.setOnAction(e -> window.close());
+        button.setOnKeyPressed(e -> {
+            if (e.getCode().equals(KeyCode.ENTER) || e.getCode().equals(KeyCode.ESCAPE))
+                window.close();
+        });
+
 
         VBox vbox = new VBox(20);
         vbox.setAlignment(Pos.CENTER);
-        vbox.setPrefSize(200,150);
+        vbox.setPrefSize(200, 150);
         vbox.getChildren().addAll(message, button);
 
         Scene alertScene = new Scene(vbox);

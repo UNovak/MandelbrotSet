@@ -44,9 +44,9 @@ build/
 *.jpg
 
 ### Java class ###
-src/main/java/distributed/time.txt/Calcualte.class
 src/main/java/distributed/time.txt
-*/Calcualte.class
 */time.txt
+*.class
+
 
 src/main/resources/

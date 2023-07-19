@@ -8,6 +8,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -112,9 +113,28 @@ public class Main extends Application {
         distributed.getStyleClass().add("toggle-button");
         distributed.setId("3");
 
+
+        // handleing foucus change for radio buttons
+        // when in focus set as active
+        sequential.focusedProperty().addListener((observable, old, updated) -> {
+            if (updated)
+                updateButtonStates(modeGroup, sequential.getId());
+        });
+
+        parallel.focusedProperty().addListener((observable, old, updated) -> {
+            if (updated)
+                updateButtonStates(modeGroup, parallel.getId());
+        });
+
+        distributed.focusedProperty().addListener((observable, old, updated) -> {
+            if (updated)
+                updateButtonStates(modeGroup, distributed.getId());
+        });
+
         distributed.setToggleGroup(modeGroup);
         parallel.setToggleGroup(modeGroup);
         sequential.setToggleGroup(modeGroup);
+
 
         // add all buttons to parent
         hbox.getChildren().addAll(sequential, parallel, distributed);
@@ -164,21 +184,17 @@ public class Main extends Application {
         parallel.setOnAction(e -> updateButtonStates(modeGroup, parallel.getId()));
         displayImage.setOnAction(e -> updateButtonStates(modeGroup, displayImage.getId()));
         start.setOnAction(e -> {
-            // check if width end height are only ints
-            if (!setVariables(widthInput, heightInput))
-                e.consume(); // failed to set width/height
-
-            // all variables were ok
-            if (render) {
-                image = setMaker.getImage(runMode);
-                imageView.setImage(image);
-                window.setScene(imageScene);
-                window.setResizable(true);
+            if (onStart(widthInput, heightInput))
+                e.consume();
+        });
+        vbox.setOnKeyPressed(e -> {
+            if (e.getCode().equals(KeyCode.ENTER)) {
+                start.getParent().requestFocus();
+                start.setDisable(true);
+                start.setDisable(false);
+                start.requestFocus();
+                onStart(widthInput, heightInput);
             }
-
-            setMaker.performanceRun(runMode);
-            if (setMaker.isFirst)
-                alert.display("Check console for performance info", "OK");
 
         });
 
@@ -208,6 +224,26 @@ public class Main extends Application {
     }
 
     // helper methods
+    private boolean onStart(TextField w, TextField h) {
+        // check if width end height are only ints
+        if (!setVariables(w, h))
+            return false;
+
+        // all variables were ok
+        if (render) {
+            image = setMaker.getImage(runMode);
+            imageView.setImage(image);
+            window.setScene(imageScene);
+            window.setResizable(true);
+        } else {
+            setMaker.performanceRun(runMode);
+            if (setMaker.isFirst)
+                alert.display("Check console for performance info", "OK");
+            setMaker.isFirst = false; // never run this part of the code again
+        }
+        setMaker.isFirst = false;
+        return true;
+    }
 
     private void updatePosition() {
 
@@ -287,7 +323,6 @@ public class Main extends Application {
     private void updateButtonStates(ToggleGroup group, String ID) {
         // display image changed
         if (ID.equals("0")) {
-
             if (displayImage.isSelected()) {
                 render = true;
                 displayImage.setText("YES");

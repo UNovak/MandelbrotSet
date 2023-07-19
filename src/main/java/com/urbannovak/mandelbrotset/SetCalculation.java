@@ -94,8 +94,6 @@ public class SetCalculation {
                                        meant only for performance tests.
                                        """);
 
-        isFirst = false;
-
         // run in the selected mode
         if (mode.equals("1"))
             runSequential();
