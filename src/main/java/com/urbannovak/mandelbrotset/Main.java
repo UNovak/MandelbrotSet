@@ -51,6 +51,8 @@ public class Main extends Application {
     VBox sizeAll;
     String fieldID;
     Alert alert = new Alert();
+    TextField heightInput;
+    TextField widthInput;
     //</editor-fold>
 
     @Override
@@ -74,11 +76,11 @@ public class Main extends Application {
         // input field creation and styling
         HBox sizeInput = new HBox(5);
         Text widthPrompt = new Text("width:");
-        TextField widthInput = new TextField("800");
+        widthInput = new TextField("800");
         widthInput.setId("width");
         widthInput.setMaxSize(50, 20);
         Text heightPrompt = new Text("height:");
-        TextField heightInput = new TextField("600");
+        heightInput = new TextField("600");
         heightInput.setId("height");
         heightInput.setMaxSize(50, 20);
         sizeInput.getChildren().addAll(widthPrompt, widthInput, heightPrompt, heightInput);
@@ -347,8 +349,33 @@ public class Main extends Application {
         }
     }
 
+    public void runTests(int width, int height, int mode) {
+        this.width = width;
+        this.height = height;
+        this.runMode = String.valueOf(mode);
+        render = false;
+        onTestStart(width, height);
+    }
+
+    private void onTestStart(int w, int h) {
+        setMaker.setHeight(height);
+        setMaker.setWidth(width);
+        setMaker.setZoom(zoom);
+        setMaker.setCenterX(centerX);
+        setMaker.setCenterY(centerY);
+        setMaker.performanceRun(runMode);
+    }
+
     // called when running the program
     public static void main(String[] args) {
-        launch();
+        if (args.length >= 3) {
+            // If command-line arguments are provided, run the tests and exit
+            int width = Integer.parseInt(args[0]);
+            int height = Integer.parseInt(args[1]);
+            int mode = Integer.parseInt(args[2]);
+            Main main = new Main();
+            main.runTests(width, height, mode);
+            System.exit(0);
+        } else {launch();}
     }
 }
