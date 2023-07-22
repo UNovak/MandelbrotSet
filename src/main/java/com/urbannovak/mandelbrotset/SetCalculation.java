@@ -18,6 +18,8 @@ import java.util.concurrent.BlockingQueue;
 
 import static com.urbannovak.mandelbrotset.Constants.*;
 
+// made with help from ChatGPT (GPT-3.5) - An AI language model developed by OpenAI.
+
 public class SetCalculation {
 
     public boolean isFirst = true;

@@ -1,4 +1,5 @@
 #!/bin/zsh
+# made with help from ChatGPT (GPT-3.5) - An AI language model developed by OpenAI.
 
 cd /Users/urbannovak/dev/GitHub/Java/MandelbrotSet
 

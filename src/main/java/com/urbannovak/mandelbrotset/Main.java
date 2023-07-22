@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
+// made with help from ChatGPT (GPT-3.5) - An AI language model developed by OpenAI.
+
 public class Main extends Application {
 
     //<editor-fold desc="Variables for setCalculation">

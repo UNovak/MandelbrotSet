@@ -5,6 +5,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
+// made with help from ChatGPT (GPT-3.5) - An AI language model developed by OpenAI.
+
 public class Calculate {
     public static void main(String[] args) throws MPIException {
         MPI.Init(args);
